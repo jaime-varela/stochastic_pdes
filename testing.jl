@@ -30,3 +30,9 @@ plot(t,X3)
 
 # %%
 X3[length(t)],X3[1]
+
+# %%
+X4 = fractional_brownian_sampler(t,0.8)
+
+# %%
+plot(t,X4)
