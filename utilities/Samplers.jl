@@ -2,9 +2,16 @@
 module Samplers
 export brownian_sampler, brownian_bridge_sampler
 export fractional_brownian_sampler
-using Random, Distributions, LinearAlgebra
+export general_gaussian_process_sampler
+export spectral_quadrature_sampler
+using Random, Distributions, LinearAlgebra, FFTW
 
 normal_unit_dist = Normal()
+
+function distributed_complex_number(dist::Distribution)
+    rands = rand(dist,2)
+    return rands[1] + im * rands[2]    
+end
 
 # Algorithm 5.1
 function brownian_sampler(time::Vector)
@@ -57,7 +64,7 @@ function fractional_brownian_sampler(time::Vector,H::Number)
         end         
     end
     randomNums = rand(normal_unit_dist,N)
-    Decomposition = eigen(C_N)
+    Decomposition = eigen(Symmetric(C_N))
     return Decomposition.vectors * (sqrt.(Decomposition.values) .* randomNums)
 end
 
@@ -70,5 +77,56 @@ function fractional_brownian_sampler(dt::AbstractFloat,num::Integer,H::Number)
     return fractional_brownian_sampler(time,H)    
 end
 
+# Equation 5.29
+# X(t) = μ(t) +∑_{j-1}^{N} √v_j u_j ξ_j , ξ_j ~ N(-,1) iid
+# Where v_j are the eignevalues of C(t_i,t_j) for t_i,t_j ∈ [t_1, ... t_N]
+function general_gaussian_process_sampler(time::Vector,μ::Function,C::Function)
+    N = length(time)
+    C_N = Matrix{Float64}(undef,N,N)
+    for i in 1:N
+        for j in 1:N 
+            ti,tj = time[i], time[j]
+            C_N[i,j] = C(ti,tj)
+        end         
+    end
+    randomNums = rand(normal_unit_dist,N)
+    Decomposition = eigen(Symmetric(C_N))
+    eigen_vals = Decomposition.values
+    has_negative = any(x -> x < 0.0, eigen_vals)
+    if has_negative
+        # TODO: allow user to pass error bounds and ignore these small negative eignevalues
+        @show "Negative eigenvalue encountered, returning mean only"
+        return μ.(time)
+    end
+
+    return μ.(time) .+ Decomposition.vectors * (sqrt.(Decomposition.values) .* randomNums)
+
+end
+
+
+# Algorithm 6.4 with N sample times, T is the end time, M is the discretization
+# parameter from 6.33, and f is the handle for f(ν) (the spectral density)
+# see (6.26) on why there are various √2 factors
+function spectral_quadrature_sampler(T::Number,N::Integer,M::Integer,f::Function)
+    Δt = T/(N-1)
+    t = Δt .* [0:1:N-1;]
+    R = π / Δt
+    Δν = 2*π / (N*Δt*M)
+    Z = zeros(ComplexF64,N)
+    coeff= zeros(ComplexF64,N)
+    for m in 1:M
+        for k in 1:N
+            ν = -R + ((k-1)*M + (m-1))*Δν
+            ξ = distributed_complex_number(normal_unit_dist)
+            coeff[k] = sqrt(f(ν) * Δν)* ξ
+            if (m==1 && k==1) || (m==M && k==N)
+                coeff[k] = coeff[k]/√2
+            end
+        end
+        Zi = N .* ifft(coeff)
+        Z = Z + exp.((im * (-R + (m-1)*Δν)).*t) .* Zi
+    end
+    return Z
+end 
 
 end;
