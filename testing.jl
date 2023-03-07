@@ -46,3 +46,10 @@ l = 2.0
 exponential_spectral_f(ν) = l / (π *(1+l^2 * ν^2 ))
 X6 = spectral_quadrature_sampler(12.0,1000,500,exponential_spectral_f)
 X6
+
+
+# %%
+s = collect(range(1.0,12.0,length=30))
+Zs = interpolated_spectral_quadrature_sampler(s,1000,500,exponential_spectral_f)
+Zs
+

@@ -4,7 +4,9 @@ export brownian_sampler, brownian_bridge_sampler
 export fractional_brownian_sampler
 export general_gaussian_process_sampler
 export spectral_quadrature_sampler
+export interpolated_spectral_quadrature_sampler
 using Random, Distributions, LinearAlgebra, FFTW
+using Interpolations
 
 normal_unit_dist = Normal()
 
@@ -128,5 +130,16 @@ function spectral_quadrature_sampler(T::Number,N::Integer,M::Integer,f::Function
     end
     return Z
 end 
+
+# Algorithm 6.5
+function interpolated_spectral_quadrature_sampler(S::Vector,N::Integer,M::Integer,f::Function)
+    tmax = maximum(S)
+    tmin = minimum(S)
+    T = tmax - tmin
+    t_range = collect(range(0.0, T, length=N))
+    Z = spectral_quadrature_sampler(T,N,M,f)
+    interpolator = LinearInterpolation(t_range .+ tmin, Z)
+    return map(x -> interpolator(x),S)
+end
 
 end;
