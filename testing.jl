@@ -53,3 +53,10 @@ s = collect(range(1.0,12.0,length=30))
 Zs = interpolated_spectral_quadrature_sampler(s,1000,500,exponential_spectral_f)
 Zs
 
+# %% For gaussian random field sampling we use the package: https://github.com/PieterjanRobbe/GaussianRandomFields.jl
+using GaussianRandomFields
+cov = CovarianceFunction(2, Exponential(.5))
+pts = range(0, stop=1, length=1001)
+grf = GaussianRandomField(cov, CirculantEmbedding(), pts, pts, minpadding=2001)
+heatmap(grf)
+
