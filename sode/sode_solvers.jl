@@ -18,7 +18,7 @@ function euler_murayama(u0::Vector,T::Number,N::Integer,m::Integer,
     u_n = u_0
     for time_ind in 1:N
         dW = sqrt(Δt) .* rand(normal_unit_dist,m)
-        u_new = u_n + Δt .* F(u_n) + dW .* G(u_n)
+        u_new = u_n + Δt .* F(u_n) + (G(u_n) * dW)
         u[:,time_ind + 1] = u_new
         u_n = u_new
    return (u,t) 
