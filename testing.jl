@@ -60,3 +60,23 @@ pts = range(0, stop=1, length=1001)
 grf = GaussianRandomField(cov, CirculantEmbedding(), pts, pts, minpadding=2001)
 heatmap(grf)
 
+# %%
+include("sode/sode_solvers.jl")
+using .SODE_Solvers
+
+# %% Algorithm 8.2
+λ = 1.0
+α = 1.0
+σ = 1.0
+F(u) = [u[2],-u[2]*(λ+u[1]^2) + α*u[1]-u[1]^3]
+G(u) = [0, σ * u[1]]
+T = 10.0
+N = 1000
+u0 = [0.5,0]
+U,t = euler_murayama(u0,T,N,1,F,G)
+
+plot(t,U[1,:])
+plot!(t,U[2,:])
+xlabel!("t")
+ylabel!("u")
+title!("Duffing-van der Pol λ=$λ ,α=$α , σ=$σ")
