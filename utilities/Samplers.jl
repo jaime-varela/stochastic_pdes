@@ -79,10 +79,22 @@ function fractional_brownian_sampler(dt::AbstractFloat,num::Integer,H::Number)
     return fractional_brownian_sampler(time,H)    
 end
 
-# Equation 5.29
-# X(t) = μ(t) +∑_{j-1}^{N} √v_j u_j ξ_j , ξ_j ~ N(-,1) iid
-# Where v_j are the eignevalues of C(t_i,t_j) for t_i,t_j ∈ [t_1, ... t_N]
-function general_gaussian_process_sampler(time::Vector,μ::Function,C::Function)
+"""
+Algorithm described in equation 5.29
+
+X(t) = μ(t) + ∑_{j=1}^{N} √(v_j) u_j ξ_j  such that ξ_j ~ N(0,1) 
+
+Where v_j are the eignevalues of C(t_i,t_j) for t_i,t_j ∈ [t_1, ... t_N]
+and u_j are normalized eigenvectors.
+
+This returns a sample of a gaussian process whose covariance function is given by C(t_i,t_j).
+
+    The jitter parameter is added for numerical stability of the c
+"""
+function general_gaussian_process_sampler(time::Vector,
+    μ::Function,
+    C::Function,
+    jitter::Float64 = 1e-10)
     N = length(time)
     C_N = Matrix{Float64}(undef,N,N)
     for i in 1:N
@@ -91,6 +103,8 @@ function general_gaussian_process_sampler(time::Vector,μ::Function,C::Function)
             C_N[i,j] = C(ti,tj)
         end         
     end
+    # enforce the symmetry
+    C_N = Symmetric(C_N) + jitter * I
     randomNums = rand(normal_unit_dist,N)
     Decomposition = eigen(Symmetric(C_N))
     eigen_vals = Decomposition.values

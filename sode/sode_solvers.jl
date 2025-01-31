@@ -1,7 +1,7 @@
 
 module SODE_Solvers
 
-export euler_murayama
+export euler_murayama,euler_murayama_paths
 using Random, Distributions, LinearAlgebra, FFTW
 
 normal_unit_dist = Normal()
@@ -25,6 +25,30 @@ function euler_murayama(u0::Vector,T::Number,N::Integer,m::Integer,
    return (u,t) 
 end
 
+# Algorithm 8.5 
+function euler_murayama_paths(u0::Vector,T::Number,N::Integer,m::Integer,
+    F::Function,G::Function,κ0::Integer,M::Integer)
+    d = length(u0)
+    Δt_ref = T/N # small step
+    Δt = κ0 * Δt_ref # large step
+    NN = Int(N / κ0) 
+    u = zeros(Float64,d,M,NN+1)
+    t = zeros(Float64,NN+1,1)
+    gdW = zeros(d,M)
+    u_n = u0
+    sqrt_ref = sqrt(Δt_ref)
+    for n in 1:NN+1
+        t[n] = (n-1)*Δt 
+        u[:,:,n] .= u_n
+        dW = sqrt_ref * squeeze(sum(randn(m,M,κ0),3))
+        for mm in 1:M
+            gdW[:,mm] = G(u_n[:,mm]) * dW[:,mm]
+        end
+        u_new = u_n + Δt .* F(u_n) + gdW
+        u_n = u_new
+    end
+    return u,t
+end
 
 
 end;
