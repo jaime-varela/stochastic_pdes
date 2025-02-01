@@ -1,7 +1,7 @@
 
 module SODE_Solvers
 
-export euler_murayama,euler_murayama_paths
+export euler_murayama,euler_murayama_paths, MilsteinDiag
 using Random, Distributions, LinearAlgebra, FFTW
 
 normal_unit_dist = Normal()
@@ -50,6 +50,35 @@ function euler_murayama_paths(u0::Vector,T::Number,N::Integer,m::Integer,
         u_n = u_new
     end
     return u,t
+end
+
+
+function MilsteinDiag(u0::Vector, T::Number, 
+    N::Integer, d::Integer, m::Integer, 
+    F::Function, G::Function, DG::Function)
+    """
+    Alg 8.3 Page 334
+    """
+    Dt = T / N
+    u = zeros(d, N + 1)
+    t = range(0, stop=T, length=N+1)
+    sqrtDt = sqrt(Dt)
+    u[:,1] = u0
+    u_n = copy(u0)
+    
+    for n in 1:N
+        dW = sqrtDt * randn(m)
+        gu_n = G(u_n)
+        F_n = F(u_n)
+        dg_n = DG(u_n) 
+        u_new = u_n + Dt * F_n + gu_n .* dW + 
+                0.5 * (dg_n .* gu_n) .* (dW .^ 2 .- Dt)
+        
+        u[:,n + 1] = u_new
+        u_n = u_new
+    end
+    
+    return t, u
 end
 
 
