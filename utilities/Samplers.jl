@@ -120,9 +120,11 @@ function general_gaussian_process_sampler(time::Vector,
 end
 
 
-# Algorithm 6.4 with N sample times, T is the end time, M is the discretization
-# parameter from 6.33, and f is the handle for f(ν) (the spectral density)
-# see (6.26) on why there are various √2 factors
+"""
+ Algorithm 6.4 with N sample times, T is the end time, M is the discretization
+ parameter from 6.33, and f is the handle for f(ν) (the spectral density)
+ see (6.26) on why there are various √2 factors
+"""
 function spectral_quadrature_sampler(T::Number,N::Integer,M::Integer,f::Function)
     Δt = T/(N-1)
     t = Δt .* [0:1:N-1;]
@@ -145,7 +147,10 @@ function spectral_quadrature_sampler(T::Number,N::Integer,M::Integer,f::Function
     return Z
 end 
 
-# Algorithm 6.5
+"""
+ Algorithm 6.5 which uses linear interpolation to obtain samples of
+ stochastic process, with specific covariance function, at non-uniform times.
+"""
 function interpolated_spectral_quadrature_sampler(S::Vector,N::Integer,M::Integer,f::Function)
     tmax = maximum(S)
     tmin = minimum(S)

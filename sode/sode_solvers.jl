@@ -7,7 +7,9 @@ using Random, Distributions, LinearAlgebra, FFTW
 normal_unit_dist = Normal()
 
 
-# Algorithm 8.1
+"""
+    Simple Euler Murayama solver in Algorithm 8.1
+"""
 function euler_murayama(u0::Vector,T::Number,N::Integer,m::Integer,
     F::Function,G::Function)
     Δt = T/N
