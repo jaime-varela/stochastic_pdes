@@ -2,6 +2,7 @@ module SPDE_Solvers
 
 
 export finite_difference_with_exponent_covariance, fNagumo
+export l2_sq_mct, finite_difference_with_white_noise
 using FFTW, Random, LinearAlgebra, SparseArrays
 
 
@@ -82,5 +83,55 @@ function finite_difference_with_exponent_covariance(u0, T, a, N, J, epsilon, sig
     end
     return t, ut
 end
+
+
+"""
+Alg 10.8 Page 458
+"""
+function finite_difference_with_white_noise(u0, T, a, N, J, epsilon, sigma, fhandle)
+    Dt = T / N
+    t = range(0, stop=T, length=N+1)
+    h = a / J
+    e = ones(J + 1)
+    A = spdiagm(-1 => -ones(J), 0 => 2 * ones(J + 1), 1 => -ones(J))
+    ind = 2:J  # Julia is 1-based
+    A = A[ind, ind]
+    EE = I + (Dt * epsilon / h^2) * A
+    ut = zeros(J + 1, length(t))
+    ut[:, 1] .= u0
+    u_n = u0[ind]
+    EEinv = factorize(EE)
+    
+    for n in 1:N
+        if length(u_n) == 1
+            fu = fhandle(u_n)
+        else
+            fu = fhandle.(u_n)
+        end
+        Wn = sqrt(Dt / h) * randn(J - 1)
+        u_new = EEinv \ (u_n + Dt * fu + sigma * Wn)
+        ut[ind, n + 1] .= u_new
+        u_n = u_new
+    end
+    
+    return t, ut
+end
+
+"""
+Alg 10.9 Page 459
+"""
+function l2_sq_mct(T, a, N, J, M, epsilon, sigma)
+    v = 0.0
+    u0 = zeros(J + 1)
+    
+    for _ in 1:M
+        t, ut = finite_difference_with_white_noise(u0, T, a, N, J, epsilon, sigma, x -> 0)
+        v += norm(ut[1:end-1, end])^2
+    end
+    
+    return v * a / (J * M)
+end
+
+
 
 end
